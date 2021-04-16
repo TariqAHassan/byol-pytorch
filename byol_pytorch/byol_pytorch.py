@@ -56,7 +56,7 @@ class RandomApply(nn.Module):
             return x
         return self.fn(x)
 
-def _make_default_aug(image_size) -> torch.nn.Sequential:
+def _make_default_aug(image_size):
     # default SimCLR augmentation
     return torch.nn.Sequential(
         RandomApply(
