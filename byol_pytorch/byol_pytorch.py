@@ -56,6 +56,25 @@ class RandomApply(nn.Module):
             return x
         return self.fn(x)
 
+def _make_default_aug(image_size) -> torch.nn.Sequential:
+    # default SimCLR augmentation
+    return torch.nn.Sequential(
+        RandomApply(
+            T.ColorJitter(0.8, 0.8, 0.8, 0.2),
+            p=0.3
+        ),
+        T.RandomGrayscale(p=0.2),
+        T.RandomHorizontalFlip(),
+        RandomApply(
+            T.GaussianBlur((3, 3), (1.0, 2.0)),
+            p=0.2
+        ),
+        T.RandomResizedCrop((image_size, image_size)),
+        T.Normalize(
+            mean=torch.tensor([0.485, 0.456, 0.406]),
+            std=torch.tensor([0.229, 0.224, 0.225])),
+    )
+
 # exponential moving average
 
 class EMA():
@@ -168,31 +187,13 @@ class BYOL(nn.Module):
         augment_fn = None,
         augment_fn2 = None,
         moving_average_decay = 0.99,
-        use_momentum = True
+        use_momentum = True,
+        aug = None,  # None -> will use default
     ):
         super().__init__()
         self.net = net
 
-        # default SimCLR augmentation
-
-        DEFAULT_AUG = torch.nn.Sequential(
-            RandomApply(
-                T.ColorJitter(0.8, 0.8, 0.8, 0.2),
-                p = 0.3
-            ),
-            T.RandomGrayscale(p=0.2),
-            T.RandomHorizontalFlip(),
-            RandomApply(
-                T.GaussianBlur((3, 3), (1.0, 2.0)),
-                p = 0.2
-            ),
-            T.RandomResizedCrop((image_size, image_size)),
-            T.Normalize(
-                mean=torch.tensor([0.485, 0.456, 0.406]),
-                std=torch.tensor([0.229, 0.224, 0.225])),
-        )
-
-        self.augment1 = default(augment_fn, DEFAULT_AUG)
+        self.augment1 = default(augment_fn, aug or _make_default_aug(image_size))
         self.augment2 = default(augment_fn2, self.augment1)
 
         self.online_encoder = NetWrapper(net, projection_size, projection_hidden_size, layer=hidden_layer)
