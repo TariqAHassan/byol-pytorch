@@ -189,12 +189,11 @@ class BYOL(nn.Module):
         augment_fn2 = None,
         moving_average_decay = 0.99,
         use_momentum = True,
-        aug = None,  # None -> will use default
     ):
         super().__init__()
         self.net = net
 
-        self.augment1 = default(augment_fn, aug or _make_default_aug(image_size))
+        self.augment1 = augment_fn or _make_default_aug(image_size)
         self.augment2 = default(augment_fn2, self.augment1)
 
         self.online_encoder = NetWrapper(net, projection_size, projection_hidden_size, layer=hidden_layer)
